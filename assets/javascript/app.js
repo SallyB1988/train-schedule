@@ -12,14 +12,26 @@
 
   const trainDB = firebase.database();
 
-  const addNewTrain = (name, dest, firstTime, freq, arrival, minAway) => {
+// Variables
+  var minutesLeft = 0;
+
+  // window.onload = () => {
+  // // Get current seconds. Wait until the remainder of the current minute passes
+  // // and then start the setInterval. I want to start the setInterval so it changes every
+  // // minute at the 0 second point.
+  //   var curSeconds = moment().format("s");
+  //   console.log('curseconds: ' + curSeconds);
+  //   setTimeout(startTableUpdate,(60-curSeconds)*1000)
+
+  // }
+
+  const addNewTrain = (name, dest, firstTime, freq, arrival) => {
     trainDB.ref().push({
       name: name,
       destination: dest,
       firstTime: firstTime,
       frequency: freq.toString(),
       arrival: arrival,
-      minAway: minAway,
       dateAdded: firebase.database.ServerValue.TIMESTAMP,
     });
 
@@ -28,13 +40,19 @@
   trainDB.ref().on("child_added", (snap) => {
     const added = snap.val();
     const $table = $("#train-table");
-    $table.append("<tr>").append(
-      $("<td>").text(added.name),
-      $("<td>").text(added.destination),
-      $("<td>").text(added.frequency),
-      $("<td>").text("calc arrival"),
-      $("<td>").text("calc min away"),
-    )
+
+    minutesLeft = timeToNext(added.firstTime, added.frequency);
+    let nextArrival = moment().add(minutesLeft,"minutes").format("hh:mm A");
+
+    $table.append(`
+      <tr class="table-row">
+        <td>${added.name}</td>
+        <td>${added.destination}</td>
+        <td>${added.frequency}</td>
+        <td>${nextArrival}</td>
+        <td id="min-left">${minutesLeft}</td>
+      </tr>
+    `)
 
   })
 
@@ -50,9 +68,11 @@
     if (!checkValidTime(firstTime)) {
       alert('bad time format');
     } else {
-      [nextArrival, minutesLeft] = timeToNext(firstTime, frequency);
-      addNewTrain(name, destination, firstTime, frequency, nextArrival,  minutesLeft);
+      minutesLeft = timeToNext(firstTime, frequency);
+      let nextArrival = moment().add(minutesLeft,"minutes").format("hh:mm A");
+      addNewTrain(name, destination, firstTime, frequency, nextArrival, minutesLeft);
     };
+    startTableUpdate();
     
   })
 
@@ -68,10 +88,34 @@
    * @param {*} freq 
    */
   const timeToNext = (first, freq) => {
+    let minutesLeft = 0;
     const timeNow = moment();
-    const timeSinceFirstTrain = Math.abs(moment(first,"HH:mm").diff(timeNow,"minutes"));
-    const timeUntilNext = freq - (timeSinceFirstTrain%freq);
-    const nextArrival = moment().add(timeUntilNext,"minutes").format("hh:mm A");
-    return [nextArrival, timeUntilNext];
+    const timeToFirst = moment(first,"HH:mm").diff(timeNow,"minutes");
+
+//  SALLY --- this isn't working correctly!
+
+    if (timeToFirst > 0) {    // first train hasn't arrived yet
+      minutesLeft = timeToFirst;
+    } else {
+      const timeSinceFirstTrain = Math.abs(timeToFirst);
+      minutesLeft = freq - (timeSinceFirstTrain%freq);
+    }
+    return minutesLeft;
 
   }
+
+
+  // This updates the minutes away time every minute
+  const startTableUpdate = () => {
+    console.log('in startTableUpdate')
+    // timerId = setInterval(() => {
+      const tableRow = $(".table-row");
+      console.log(tableRow.length);
+      var newRowMin = 0;
+      for (i=0; i<tableRow.length; i++) {
+        newRowMin = tableRow[i].children[4].lastChild.data - 1;   // this finally got to the minutes away number!
+        // need some sort of id for the 
+      }
+    // }, 60 * 1000);
+  }
+
