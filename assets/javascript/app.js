@@ -15,21 +15,21 @@
 // Variables
   var minutesLeft = 0;
 
-  // window.onload = () => {
-  // // Get current seconds. Wait until the remainder of the current minute passes
-  // // and then start the setInterval. I want to start the setInterval so it changes every
-  // // minute at the 0 second point.
-  //   var curSeconds = moment().format("s");
-  //   console.log('curseconds: ' + curSeconds);
-  //   setTimeout(startTableUpdate,(60-curSeconds)*1000)
+  window.onload = () => {
+  // Get current seconds. Wait until the remainder of the current minute passes
+  // and then start the setInterval. I want to start the setInterval so it changes every
+  // minute at the 0 second point.
+    var curSeconds = moment().format("s");
+    console.log('curseconds: ' + curSeconds);
+    setTimeout(startTableUpdate,(60-curSeconds)*1000)
 
-  // }
+  }
 
-  const addNewTrain = (name, dest, firstTime, freq, arrival) => {
+  const addNewTrain = (name, dest, firstTrain, freq, arrival) => {
     trainDB.ref().push({
       name: name,
       destination: dest,
-      firstTime: firstTime,
+      firstTrain: firstTrain,
       frequency: freq.toString(),
       arrival: arrival,
       dateAdded: firebase.database.ServerValue.TIMESTAMP,
@@ -40,21 +40,36 @@
   trainDB.ref().on("child_added", (snap) => {
     const added = snap.val();
     const $table = $("#train-table");
-
-    minutesLeft = timeToNext(added.firstTime, added.frequency);
-    let nextArrival = moment().add(minutesLeft,"minutes").format("hh:mm A");
-
+    minLeft = timeToNext(added.firstTrain, added.frequency);
+    let nextTrain = moment().add(minLeft,"minutes").format("hh:mm A");
+    console.log('inside child_added');
     $table.append(`
       <tr class="table-row">
         <td>${added.name}</td>
         <td>${added.destination}</td>
         <td>${added.frequency}</td>
-        <td>${nextArrival}</td>
-        <td id="min-left">${minutesLeft}</td>
+        <td>${nextTrain}</td>
+        <td id="min-left">${minLeft}</td>
       </tr>
     `)
-
   })
+  
+  const appendTableRow = (obj) => {
+    const $table = $("#train-table");
+    minLeft = timeToNext(obj.firstTrain, obj.frequency);
+    let nextTrain = moment().add(minLeft,"minutes").format("hh:mm A");
+    
+    $table.append(`
+      <tr class="table-row">
+        <td>${obj.name}</td>
+        <td>${obj.destination}</td>
+        <td>${obj.frequency}</td>
+        <td>${nextTrain}</td>
+        <td id="min-left">${minLeft}</td>
+      </tr>
+    `)
+  }
+
 
   $("#submit").on("click", (e) => {
     let nextArrival;
@@ -62,17 +77,16 @@
     e.preventDefault();
     const name = $("#name").val().trim();
     const destination = $("#destination").val().trim();
-    const firstTime = $("#first-time").val().trim();
+    const firstTrain = $("#first-train").val().trim();
     const frequency = $("#frequency").val().trim();
     
-    if (!checkValidTime(firstTime)) {
+    if (!checkValidTime(firstTrain)) {
       alert('bad time format');
     } else {
-      minutesLeft = timeToNext(firstTime, frequency);
-      let nextArrival = moment().add(minutesLeft,"minutes").format("hh:mm A");
-      addNewTrain(name, destination, firstTime, frequency, nextArrival, minutesLeft);
+      minutesLeft = timeToNext(firstTrain, frequency);
+      nextArrival = moment().add(minutesLeft,"minutes").format("hh:mm A");
+      addNewTrain(name, destination, firstTrain, frequency, nextArrival, minutesLeft);
     };
-    startTableUpdate();
     
   })
 
@@ -92,30 +106,27 @@
     const timeNow = moment();
     const timeToFirst = moment(first,"HH:mm").diff(timeNow,"minutes");
 
-//  SALLY --- this isn't working correctly!
-
-    if (timeToFirst > 0) {    // first train hasn't arrived yet
-      minutesLeft = timeToFirst;
+    if (timeToFirst > 0) {    // if first train hasn't arrived yet
+      minutesLeft = timeToFirst + 1;  
     } else {
       const timeSinceFirstTrain = Math.abs(timeToFirst);
       minutesLeft = freq - (timeSinceFirstTrain%freq);
     }
+
     return minutesLeft;
-
   }
-
 
   // This updates the minutes away time every minute
   const startTableUpdate = () => {
-    console.log('in startTableUpdate')
-    // timerId = setInterval(() => {
-      const tableRow = $(".table-row");
-      console.log(tableRow.length);
-      var newRowMin = 0;
-      for (i=0; i<tableRow.length; i++) {
-        newRowMin = tableRow[i].children[4].lastChild.data - 1;   // this finally got to the minutes away number!
-        // need some sort of id for the 
-      }
-    // }, 60 * 1000);
+    timerId = setInterval(() => {
+      $("#train-table").empty();    // clear out table
+      trainDB.ref().once('value').then(function(snap){
+        const data = snap.val();
+        const keys = Object.keys(data);
+        console.log('inside startTableUpdate')
+        keys.forEach((k) => {
+          appendTableRow(data[k]);
+        })
+      });
+    }, 60 * 1000)
   }
-
