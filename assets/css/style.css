@@ -22,3 +22,10 @@ body {
   border-color: rgb(158, 92, 6);
   color: black;
 }
+
+#schedule-header {
+  text-transform: uppercase;
+  font-weight: bold;
+  font-size: 20px;
+  background-color: rgba(165, 101, 42, 0.781);
+}
