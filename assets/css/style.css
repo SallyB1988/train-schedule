@@ -1,8 +1,24 @@
 body {
-  background-image: url("../images/background1.jpg");
+  background-image: url("../images/bkg4.jpg");
   background-size: cover;
   min-width: 350px;
   color: black;
   margin-bottom: 20px;
   font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif
+}
+
+.card {
+  background-color: rgba(253, 218, 176, 0.884);
+  border-radius: 15px;
+}
+
+.card-header {
+  background-color: burlywood;
+  border-radius: 15px 15px 0px 0px !important;
+}
+
+#submit {
+  background-color: rgba(202, 151, 83, 0.808);
+  border-color: rgb(158, 92, 6);
+  color: black;
 }

@@ -1,4 +1,3 @@
-
   // Initialize Firebase
   var config = {
     apiKey: "AIzaSyCSClrgNsPCqFoavoMkImbxKfAMhfG6qfg",
@@ -16,13 +15,17 @@
   var minutesLeft = 0;
   // REGEX pattern used to validate military time format  (HH:mm)
   const regex_pattern = /([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
+  const $table = $("#train-table");
 
   window.onload = () => {
   // Get current seconds. Wait until the remainder of the current minute passes
   // and then start the setInterval. I want to start the setInterval so it changes every
   // minute at the 0 second point.
     var curSeconds = moment().format("s");
-    setTimeout(startTableUpdate,(60-curSeconds)*1000)
+    setTimeout(() => {
+      refreshTrainTable()
+      startTableUpdate()
+    },(60-curSeconds)*1000)
   }
 
   const addNewTrain = (name, dest, firstTrain, freq, arrival) => {
@@ -39,25 +42,12 @@
 
   trainDB.ref().on("child_added", (snap) => {
     const added = snap.val();
-    const $table = $("#train-table");
-    minLeft = timeToNext(added.firstTrain, added.frequency);
-    let nextTrain = moment().add(minLeft,"minutes").format("hh:mm A");
-    $table.append(`
-      <tr class="table-row">
-        <td>${added.name}</td>
-        <td>${added.destination}</td>
-        <td>${added.frequency}</td>
-        <td>${nextTrain}</td>
-        <td id="min-left">${minLeft}</td>
-      </tr>
-    `)
+    appendTableRow(added);
   })
   
   const appendTableRow = (obj) => {
-    const $table = $("#train-table");
     minLeft = timeToNext(obj.firstTrain, obj.frequency);
     let nextTrain = moment().add(minLeft,"minutes").format("hh:mm A");
-    
     $table.append(`
       <tr class="table-row">
         <td>${obj.name}</td>
@@ -68,7 +58,6 @@
       </tr>
     `)
   }
-
 
   $("#submit").on("click", (e) => {
     let nextArrival;
@@ -132,16 +121,20 @@
     return minutesLeft;
   }
 
+  const refreshTrainTable = () => {
+    $("#train-table").empty();    // clear out table
+    trainDB.ref().once('value').then(function(snap){
+      const data = snap.val();
+      const keys = Object.keys(data);
+      keys.forEach((k) => {
+        appendTableRow(data[k]);
+      })
+    });    
+  }
+
   // This updates the minutes away time every minute
   const startTableUpdate = () => {
     timerId = setInterval(() => {
-      $("#train-table").empty();    // clear out table
-      trainDB.ref().once('value').then(function(snap){
-        const data = snap.val();
-        const keys = Object.keys(data);
-        keys.forEach((k) => {
-          appendTableRow(data[k]);
-        })
-      });
+      refreshTrainTable();
     }, 60 * 1000)
   }
