@@ -14,7 +14,8 @@
 // Variables
   var minutesLeft = 0;
   // REGEX pattern used to validate military time format  (HH:mm)
-  const regex_pattern = /([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
+  const regex_pattern = /^([0-1][0-9]|(2[0-3])):[0-5][0-9]$/;
+  const regex_num = /^\d+$/;
   const $table = $("#train-table");
 
   window.onload = () => {
@@ -33,7 +34,9 @@
       name: name,
       destination: dest,
       firstTrain: firstTrain,
-      frequency: freq.toString(),
+
+      // frequency: freq.toString(),
+      frequency: freq,
       arrival: arrival,
       dateAdded: firebase.database.ServerValue.TIMESTAMP,
     });
@@ -66,10 +69,10 @@
     const name = $("#name").val().trim();
     const destination = $("#destination").val().trim();
     const firstTrain = $("#first-train").val().trim();
-    const frequency = parseInt($("#frequency").val().trim());   
+    const frequency = $("#frequency").val().trim();   
     
     // Check if frequency is a number greater than 0
-    if (!frequency || frequency < 0) {
+    if (!isInteger(frequency) || frequency < 0) {
       alert("Invalid frequency entry format");
     } else if ( !isValidTimeFormat(firstTrain) ) {
       alert('Invalid first train time format');
@@ -87,6 +90,14 @@
    */
   const isValidTimeFormat = (time) => {
     if (time.match(regex_pattern) === null ) {
+      return false;
+    } else {
+      return true;
+    }
+  }
+
+  const isInteger = (num) => {
+    if (num.match(regex_num) === null) {
       return false;
     } else {
       return true;
