@@ -14,15 +14,15 @@
 
 // Variables
   var minutesLeft = 0;
+  // REGEX pattern used to validate military time format  (HH:mm)
+  const regex_pattern = /([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
 
   window.onload = () => {
   // Get current seconds. Wait until the remainder of the current minute passes
   // and then start the setInterval. I want to start the setInterval so it changes every
   // minute at the 0 second point.
     var curSeconds = moment().format("s");
-    console.log('curseconds: ' + curSeconds);
     setTimeout(startTableUpdate,(60-curSeconds)*1000)
-
   }
 
   const addNewTrain = (name, dest, firstTrain, freq, arrival) => {
@@ -42,7 +42,6 @@
     const $table = $("#train-table");
     minLeft = timeToNext(added.firstTrain, added.frequency);
     let nextTrain = moment().add(minLeft,"minutes").format("hh:mm A");
-    console.log('inside child_added');
     $table.append(`
       <tr class="table-row">
         <td>${added.name}</td>
@@ -78,21 +77,38 @@
     const name = $("#name").val().trim();
     const destination = $("#destination").val().trim();
     const firstTrain = $("#first-train").val().trim();
-    const frequency = $("#frequency").val().trim();
+    const frequency = parseInt($("#frequency").val().trim());   
     
-    if (!checkValidTime(firstTrain)) {
-      alert('bad time format');
+    // Check if frequency is a number greater than 0
+    if (!frequency || frequency < 0) {
+      alert("Invalid frequency entry format");
+    } else if ( !isValidTimeFormat(firstTrain) ) {
+      alert('Invalid first train time format');
     } else {
       minutesLeft = timeToNext(firstTrain, frequency);
       nextArrival = moment().add(minutesLeft,"minutes").format("hh:mm A");
       addNewTrain(name, destination, firstTrain, frequency, nextArrival, minutesLeft);
+      clearFormFields();
     };
-    
   })
 
-  const checkValidTime = (t) => {
-    const expectedFormat = "HH:mm";
-    return moment(t,expectedFormat).format() === 'Invalid date' ? false : true;
+  /**
+   * Validates time is in military time format (HH:mm)
+   * @param {*} time 
+   */
+  const isValidTimeFormat = (time) => {
+    if (time.match(regex_pattern) === null ) {
+      return false;
+    } else {
+      return true;
+    }
+  }
+
+  const clearFormFields = () => {
+      $("#name").val('');
+      $("#destination").val('');
+      $("#first-train").val('');
+      $("#frequency").val('');  
   }
 
   /**
@@ -123,7 +139,6 @@
       trainDB.ref().once('value').then(function(snap){
         const data = snap.val();
         const keys = Object.keys(data);
-        console.log('inside startTableUpdate')
         keys.forEach((k) => {
           appendTableRow(data[k]);
         })
