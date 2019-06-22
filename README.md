@@ -1,1 +1,1 @@
-# train-schedule
+# Tip Calculator
